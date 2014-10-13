@@ -7,6 +7,7 @@ clear all;
 /********************************************************************************************************************/
 local scenarios "550 Base";
 
+foreach s of local scenarios{;
 use subset/`1'_`2'_`s'.dta;
 
 /* If the dataset is empty, save and exit the dataset, read next line*/

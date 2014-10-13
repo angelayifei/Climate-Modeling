@@ -22,187 +22,136 @@ save subset/`1'_`2'_Trans_Analysis, replace;
 
 /*************************************************** First step ***************************************************/
 /******************************************************************************************************************/
-/* Decompose CO2 emissions from transport at the sectoral level, into demand effect, 
+/* Decompose CO2 emissions from Transport at the sectoral level, into demand effect, 
 energy intensity effect and carbon intensity effect */
+local scenarios "550 Base";
+local subsectors "Freight Passenger";
 
 /* Sectoral demand level log2scenario */
-gen log2scenario_Df =.;
-replace log2scenario_Df = ln((ES_Trans_Freight_550)/(ES_Trans_Freight_Base))
-	if fuel=="All" & ES_Trans_Freight_Base!=.;
-
-gen log2scenario_Dp =.;
-replace log2scenario_Dp = ln((ES_Trans_Passenger_550)/(ES_Trans_Passenger_Base))
-	if fuel=="All" & ES_Trans_Passenger_Base!=.;
+foreach x of local subsectors{;
+	gen log2scenario_ES_`x' =.;
+	replace log2scenario_ES_`x' = ln((ES_Trans_`x'_550)/(ES_Trans_`x'_Base))
+		if fuel=="All" & ES_Trans_`x'_Base!=.;
+		};
 
 /*Energy intensity (energy consumption/sectoral activity) log2scenario */
-gen EI_Freight_550 =.;
-replace EI_Freight_550 = FE_Trans_Freight_550 / ES_Trans_Freight_550 
-	if fuel=="All" & FE_Trans_Freight_550!=. & ES_Trans_Freight_550!=.;
-gen EI_Freight_Base =.;
-replace EI_Freight_Base = FE_Trans_Freight_Base / ES_Trans_Freight_Base 
-	if fuel=="All" & FE_Trans_Freight_Base!=. & ES_Trans_Freight_Base!=.;
-gen log2scenario_EIf =.;
-replace log2scenario_EIf = ln((EI_Freight_550)/(EI_Freight_Base))
-	if fuel=="All" & EI_Freight_550!=. & EI_Freight_Base!=.;
+foreach s of local scenarios{;
+	foreach x of local subsectors{;
+		gen EI_`x'_`s' =.;
+		replace EI_`x'_`s' = FE_Trans_`x'_`s' / ES_Trans_`x'_`s' 
+		if fuel=="All" & FE_Trans_`x'_`s'!=. & ES_Trans_`x'_`s'!=.;
+	};
+};
+foreach x of local subsectors{;
+	gen log2scenario_EI_`x' =.;
+	replace log2scenario_EI_`x'= ln((EI_`x'_550)/(EI_`x'_Base))
+		if fuel=="All" & EI_`x'_550!=. & EI_`x'_Base!=.;
+};
 
-gen EI_Passenger_550 =.;
-replace EI_Passenger_550 = FE_Trans_Passenger_550 / ES_Trans_Passenger_550 
-	if fuel=="All" & FE_Trans_Passenger_550!=. & ES_Trans_Passenger_550!=.;
-gen EI_Passenger_Base =.;
-replace EI_Passenger_Base = FE_Trans_Passenger_Base / ES_Trans_Passenger_Base 
-	if fuel=="All" & FE_Trans_Passenger_Base!=. & ES_Trans_Passenger_Base!=.;
-gen log2scenario_EIp =.;
-replace log2scenario_EIp = ln((EI_Passenger_550)/(EI_Passenger_Base))
-	if fuel=="All" & EI_Passenger_550!=. & EI_Passenger_Base!=.;
 
 /*Allocate emissions to Freight and Passenger subsectors based on shares of subsectoral energy consumption in 
-total transport energy consumption */
-gen weight_Freight_550 =.;
-replace weight_Freight_550 = FE_Trans_Freight_550 / FE_Trans_550
-	if fuel=="All" & FE_Trans_Freight_550!=. & FE_Trans_550!=.;
-gen CO2_Trans_Freight_550 =.;
-replace CO2_Trans_Freight_550 = CO2e_adj_550 * weight_Freight_550
-	if fuel=="All" & weight_Freight_550!=.;
+total Transport energy consumption */
+foreach s of local scenarios{;
+	foreach x of local subsectors{;
+		gen weight_`x'_`s' =.;
+		replace weight_`x'_`s' = FE_Trans_`x'_`s' / FE_Trans_`s'
+			if fuel=="All" & FE_Trans_`x'_`s'!=. & FE_Trans_`s'!=.;
+		gen CO2_Trans_`x'_`s' =.;
+		replace CO2_Trans_`x'_`s' = CO2e_gen_`s' * weight_`x'_`s'
+			if fuel=="All" & weight_`x'_`s'!=.;
+};
 
-gen weight_Freight_Base =.;
-replace weight_Freight_Base = FE_Trans_Freight_Base / FE_Trans_Base
-	if fuel=="All" & FE_Trans_Freight_Base!=. & FE_Trans_Base!=.;
-gen CO2_Trans_Freight_Base =.;
-replace CO2_Trans_Freight_Base = CO2e_adj_Base * weight_Freight_Base
-	if fuel=="All" & weight_Freight_Base!=.;
-
-gen weight_Passenger_550 =.;
-replace weight_Passenger_550 = FE_Trans_Passenger_550 / FE_Trans_550
-	if fuel=="All" & FE_Trans_Passenger_550!=. & FE_Trans_550!=.;
-gen CO2_Trans_Passenger_550 =.;
-replace CO2_Trans_Passenger_550 = CO2e_adj_550 * weight_Passenger_550
-	if fuel=="All" & weight_Passenger_550!=.;
-
-gen weight_Passenger_Base =.;
-replace weight_Passenger_Base = FE_Trans_Passenger_Base / FE_Trans_Base
-	if fuel=="All" & FE_Trans_Passenger_Base!=. & FE_Trans_Base!=.;
-gen CO2_Trans_Passenger_Base =.;
-replace CO2_Trans_Passenger_Base = CO2e_adj_Base * weight_Passenger_Base
-	if fuel=="All" & weight_Passenger_Base!=.;
-	
-gen log2scenario_Emissionf =.;
-replace log2scenario_Emissionf=ln((CO2_Trans_Freight_550)/(CO2_Trans_Freight_Base))
-	if fuel=="All" & CO2_Trans_Freight_Base!=.;
-
-gen log2scenario_Emissionp =.;
-replace log2scenario_Emissionp=ln((CO2_Trans_Passenger_550)/(CO2_Trans_Passenger_Base))
-	if fuel=="All" & CO2_Trans_Passenger_Base!=.;
+foreach x of local subsectors{;
+	gen log2scenario_Emission_`x' =.;
+	replace log2scenario_Emission_`x'=ln((CO2_Trans_`x'_550)/(CO2_Trans_`x'_Base))
+	if fuel=="All" & CO2_Trans_`x'_Base!=.;
+};
 
 /* Emission factors */
-gen EF_Freight_550 =.;
-replace EF_Freight_550 = CO2_Trans_Freight_550 / FE_Trans_Freight_550
-	if  fuel=="All" & FE_Trans_Freight_550!=.;
-gen EF_Freight_Base =.;
-replace EF_Freight_Base = CO2_Trans_Freight_Base / FE_Trans_Freight_Base
-	if  fuel=="All" & FE_Trans_Freight_Base!=.;
+foreach s of local scenarios{;
+	foreach x of local subsectors{;
+		gen EF_`x'_`s' =.;
+		replace EF_`x'_`s' = CO2_Trans_`x'_`s' / FE_Trans_`x'_`s'
+			if  fuel=="All" & FE_Trans_`x'_`s'!=.;
+};
 
-gen EF_Passenger_550 =.;
-replace EF_Passenger_550 = CO2_Trans_Passenger_550 / FE_Trans_Passenger_550
-	if  fuel=="All" & FE_Trans_Passenger_550!=.;
-gen EF_Passenger_Base =.;
-replace EF_Passenger_Base = CO2_Trans_Passenger_Base / FE_Trans_Passenger_Base
-	if  fuel=="All" & FE_Trans_Passenger_Base!=.;
+foreach x of local subsectors{;
+	gen log2scenario_EF_`x'=.;
+	replace log2scenario_EF_`x'=ln((EF_`x'_550)/(EF_`x'_Base))
+		if fuel=="All" & EF_`x'_Base!=.;
+};
 
-gen log2scenario_EFf =.;
-replace log2scenario_EFf=ln((EF_Freight_550)/(EF_Freight_Base))
-	if fuel=="All" & EF_Freight_Base!=.;
-
-gen log2scenario_EFp =.;
-replace log2scenario_EFp=ln((EF_Passenger_550)/(EF_Passenger_Base))
-	if fuel=="All" & EF_Passenger_Base!=.;
-
-gen Phi_Freight = .;
-replace Phi_Freight = (CO2_Trans_Freight_550 - CO2_Trans_Freight_Base) / (log2scenario_Emissionf)
-	if fuel=="All" & CO2_Trans_Freight_Base!=. & log2scenario_Emissionf !=.;
-
-gen Phi_Passenger = .;
-replace Phi_Passenger = (CO2_Trans_Passenger_550 - CO2_Trans_Passenger_Base) / (log2scenario_Emissionp)
-	if fuel=="All" & CO2_Trans_Passenger_Base!=. & log2scenario_Emissionp !=.;
+/* Calculate multiplier phi */
+foreach x of local subsectors{;
+	gen Phi_`x' = .;
+	replace Phi_`x' = (CO2_Trans_`x'_550 - CO2_Trans_`x'_Base) / (log2scenario_Emission_`x')
+		if fuel=="All" & CO2_Trans_`x'_Base!=. & log2scenario_Emission_`x'!=.;
+};
 
 /* Calculate scale effect, energy intensity effect and carbon intensity effect 
 when subsectoral energy consumption data are available*/
-gen scale_effect_Freight =.;
-replace scale_effect_Freight = log2scenario_Df * Phi_Freight
-	if fuel=="All" & Phi_Freight!=.;
-gen scale_effect_Passenger =.;
-replace scale_effect_Passenger = log2scenario_Dp * Phi_Passenger
-	if fuel=="All" & Phi_Passenger!=.;
+foreach x of local subsectors{;
+	gen scale_effect_`x' =.;
+	replace scale_effect_`x' = log2scenario_ES_`x' * Phi_`x'
+		if fuel=="All" & Phi_`x'!=.;
 
-gen EI_effect_Freight =.;
-replace EI_effect_Freight = log2scenario_EIf * Phi_Freight
-	if fuel=="All" & Phi_Freight!=.;
-gen EI_effect_Passenger =.;
-replace EI_effect_Passenger = log2scenario_EIp * Phi_Passenger
-	if fuel=="All" & Phi_Passenger!=.;
+	gen EI_effect_`x' =.;
+	replace EI_effect_`x' = log2scenario_EI_`x' * Phi_`x'
+		if fuel=="All" & Phi_`x'!=.;
 
-gen CI_effect_Freight =.;
-replace CI_effect_Freight = log2scenario_EFf * Phi_Freight
-	if fuel=="All" & Phi_Freight!=.;
-gen CI_effect_Passenger =.;
-replace CI_effect_Passenger = log2scenario_EFp * Phi_Passenger
-	if fuel=="All" & Phi_Passenger!=.;
+	gen CI_effect_`x' =.;
+	replace CI_effect_`x' = log2scenario_EF_`x' * Phi_`x'
+		if fuel=="All" & Phi_`x'!=.;
+};
 
-gen scale_effect_trans =.;
-replace scale_effect_trans = scale_effect_Freight + scale_effect_Passenger
-	if fuel=="All" & scale_effect_Freight!=. & scale_effect_Passenger!=.;
-
-gen EI_effect_trans =.;
-replace EI_effect_trans = EI_effect_Freight + EI_effect_Passenger
-	if fuel=="All" & EI_effect_Freight!=. & EI_effect_Passenger!=.;
-
-gen CI_effect_trans =.;
-replace CI_effect_trans = CI_effect_Freight + CI_effect_Passenger
-	if fuel=="All" & CI_effect_Freight!=. & CI_effect_Passenger!=.;
+local effects "scale_effect EI_effect CI_effect";
+foreach eff of local effects{;
+	gen `eff'_Trans =.;
+	replace `eff'_Trans = `eff'_Freight + `eff'_Passenger
+	if fuel=="All" & `eff'_Freight!=. & `eff'_Passenger!=.;
+};
 
 /* Calculate scale effect, energy intensity effect and carbon intensity effect when 
 subsectoral energy consumption data are not available*/
-gen log2scenario_Dt =.;
-replace log2scenario_Dt = (log2scenario_Dp + log2scenario_Df)/2
+gen log2scenario_ES_Trans =.;
+replace log2scenario_ES_Trans = (log2scenario_ES_Freight + log2scenario_ES_Passenger)/2
 	if fuel=="All"; /* Approximate calculation */
 
-gen log2scenario_It=.;
-replace log2scenario_It = ln((FE_Trans_550)/(FE_Trans_Base)) - log2scenario_Dt
+gen log2scenario_EI_Trans=.;
+replace log2scenario_EI_Trans = ln((FE_Trans_550)/(FE_Trans_Base)) - log2scenario_ES_Trans
 	if fuel=="All";
 
-gen EF_trans_550=.;
-replace EF_trans_550 = CO2e_adj_550 / FE_Trans_550 
-	if CO2e_adj_550!=. & FE_Trans_550!=.;
-gen EF_trans_Base=.;
-replace EF_trans_Base = CO2e_adj_Base / FE_Trans_Base
-	if CO2e_adj_Base!=. & FE_Trans_Base!=.;
+foreach s of local scenarios{;
+	gen EF_Trans_`s'=.;
+	replace EF_Trans_`s' = CO2e_gen_`s' / FE_Trans_`s' 
+		if CO2e_gen_`s'!=. & FE_Trans_`s'!=.;
+};
 	
-gen log2scenario_EFt=.;
-replace log2scenario_EFt = ln((EF_trans_550)/(EF_trans_Base))
-	if fuel=="All" & EF_trans_Base!=. & EF_trans_550 !=.;
+gen log2scenario_EF_Trans=.;
+replace log2scenario_EF_Trans = ln((EF_Trans_550)/(EF_Trans_Base))
+	if fuel=="All" & EF_Trans_Base!=. & EF_Trans_550 !=.;
 
-gen log2scenario_CO2trans=.;
-replace log2scenario_CO2trans = ln((CO2e_adj_550)/(CO2e_adj_Base)) 
-	if CO2e_adj_550!=. & CO2e_adj_Base!=.;
+gen log2scenario_Emission_Trans=.;
+replace log2scenario_Emission_Trans = ln((CO2e_gen_550)/(CO2e_gen_Base)) 
+	if CO2e_gen_550!=. & CO2e_gen_Base!=.;
 
-gen Phi_trans =.;
-replace Phi_trans = (CO2e_adj_550 - CO2e_adj_Base) / log2scenario_CO2trans
-	if log2scenario_CO2trans!=0 & log2scenario_CO2trans!=.;
+gen Phi_Trans =.;
+replace Phi_Trans = (CO2e_gen_550 - CO2e_gen_Base) / log2scenario_Emission_Trans
+	if log2scenario_Emission_Trans!=0 & log2scenario_Emission_Trans!=.;
 
-replace scale_effect_trans = log2scenario_Dt * Phi_trans
-	if fuel=="All" & scale_effect_trans==.;
-
-replace EI_effect_trans = log2scenario_It * Phi_trans
-	if fuel=="All" & EI_effect_trans==.;
-
-replace CI_effect_trans = log2scenario_EFt * Phi_trans
-	if fuel=="All" & CI_effect_trans==.;
+replace scale_effect_Trans = log2scenario_ES_Trans * Phi_Trans
+	if fuel=="All" & scale_effect_Trans==.;
+replace EI_effect_Trans = log2scenario_EI_Trans * Phi_Trans
+	if fuel=="All" & EI_effect_Trans==.;
+replace CI_effect_Trans = log2scenario_EF_Trans * Phi_Trans
+	if fuel=="All" & CI_effect_Trans==.;
 
 order _all, alphabetic;
-order region fuel model year CO2e_adj_550 CO2e_adj_Base Phi_trans EF_trans_550 EF_trans_Base
-scale_effect_trans EI_effect_trans CI_effect_trans
+order  region fuel model year CO2e_gen_550 CO2e_gen_Base Phi_Trans EF_Trans_550 EF_Trans_Base
+scale_effect_Trans EI_effect_Trans CI_effect_Trans
 scale_effect_Freight scale_effect_Passenger EI_effect_Freight EI_effect_Passenger CI_effect_Freight CI_effect_Passenger;
 
-drop log2scenario* weight* scale_factor*;
+drop log2scenario* weight*;
 
 save subset/`1'_`2'_Trans_Analysis, replace;
 
@@ -211,32 +160,23 @@ save subset/`1'_`2'_Trans_Analysis, replace;
 /* Further decompose carbon intensity effect into fuel emission efficiency improvement and fuel switching */
 
 gen delta_EF =.;
-replace delta_EF = EF_trans_550 - EF_trans_Base if EF_trans_550!=. & EF_trans_Base!=.;
+replace delta_EF = EF_Trans_550 - EF_Trans_Base if EF_Trans_550!=. & EF_Trans_Base!=.;
 
 gen avg_EF =.;
-replace avg_EF = (EF_trans_550 + EF_trans_Base)/2 if EF_trans_550!=. & EF_trans_Base!=.;
+replace avg_EF = (EF_Trans_550 + EF_Trans_Base)/2 if EF_Trans_550!=. & EF_Trans_Base!=.;
 
-/* Emission efficiency improvement effect */
-gen FS_550 =.;
+/*Calculate fuel share */
+foreach s of local scenarios {;
+gen FS_`s' =.;
 
-forvalues year_i = 2010(10)2050 {;
-	levelsof FE_Trans_550 if fuel=="All" & year==`year_i', miss local (FE_total_550);
+	forvalues year_i = 2010(10)2050 {;
+		levelsof FE_Trans_`s' if fuel=="All" & year==`year_i', miss local (FE_total_`s');
 	
-	foreach x of varlist fuel {;
-		replace FS_550 = FE_Trans_550 / `FE_total_550' 
-			if fuel==`x' & year==`year_i' & `FE_total_550'!=.;
-		};
-};
-
-gen FS_Base =.;
-
-forvalues year_i = 2010(10)2050 {;
-	levelsof FE_Trans_Base if fuel=="All" & year==`year_i', miss local (FE_total_Base);
-	
-	foreach x of varlist fuel {;
-		replace FS_Base = FE_Trans_Base / `FE_total_Base' 
-			if fuel==`x' & year==`year_i' & `FE_total_Base'!=.;
-		};
+		foreach x of varlist fuel {;
+			replace FS_`s' = FE_Trans_`s' / `FE_total_`s'' 
+				if fuel==`x' & year==`year_i' & `FE_total_`s''!=.;
+			};
+	};
 };
 
 gen delta_FS=.;
@@ -245,6 +185,7 @@ replace delta_FS = FS_550 - FS_Base if FS_550!=. & FS_Base!=.;
 gen avg_FS=.;
 replace avg_FS = (FS_550 + FS_Base)/2 if FS_550!=. & FS_Base!=.;
 
+/* Calculate CO2 change due to emission factor improvement */
 gen EF_effect_share = .;
 
 forvalues year_i = 2010(10)2050 {;
@@ -259,27 +200,21 @@ forvalues year_i = 2010(10)2050 {;
 replace EF_effect_share=0 if EF_effect_share==.;
 
 forvalues year_i = 2010(10)2050 {;
-	levelsof EF_effect_share if fuel=="Electricity" & year==`year_i';
-		local EFES_Electricity_`year_i' = `r(levels)';
-	levelsof EF_effect_share if fuel=="Gases" & year==`year_i';
-		local EFES_Gases_`year_i' = `r(levels)';
-	levelsof EF_effect_share if fuel=="Liquids" & year==`year_i';
-		local EFES_Liquids_`year_i' = `r(levels)';
-	levelsof EF_effect_share if fuel=="Other" & year==`year_i';
-		local EFES_Other_`year_i' = `r(levels)';
-	levelsof EF_effect_share if fuel=="Hydrogen" & year==`year_i';
-		local EFES_Hydrogen_`year_i' = `r(levels)';
+	foreach x of varlist fuel {;
+		levelsof EF_effect_share if fuel=="`x'" & year==`year_i';
+			local EFES_`x'_`year_i' = `r(levels)';
+	};
 	
 	replace EF_effect_share = `EFES_Electricity_`year_i'' + `EFES_Gases_`year_i''
 		+ `EFES_Liquids_`year_i'' + `EFES_Other_`year_i'' + `EFES_Hydrogen_`year_i''
 		if fuel=="All" & year==`year_i';
 	};
 
-gen EF_Reduce_Effect =.;
+gen EF_effect =.;
 
 forvalues year_i = 2010(10)2050 {;
-	levelsof CI_effect_trans if fuel=="All" & year==`year_i', miss local (CI_Effect_Total_`year_i');
-	replace EF_Reduce_Effect = EF_effect_share * `CI_Effect_Total_`year_i''
+	levelsof CI_effect_Trans if fuel=="All" & year==`year_i', miss local (CI_Effect_Total_`year_i');
+	replace EF_effect = EF_effect_share * `CI_Effect_Total_`year_i''
 		if year==`year_i' & EF_effect_share!=. & `CI_Effect_Total_`year_i''!=.;
 };
 
@@ -295,16 +230,10 @@ forvalues year_i = 2010(10)2050 {;
 replace Switch_effect_share=0 if Switch_effect_share==.;
 
 forvalues year_i = 2010(10)2050 {;
-	levelsof Switch_effect_share if fuel=="Electricity" & year==`year_i';
-		local FSES_Electricity_`year_i' = `r(levels)';
-	levelsof Switch_effect_share if fuel=="Gases" & year==`year_i';
-		local FSES_Gases_`year_i' = `r(levels)';
-	levelsof Switch_effect_share if fuel=="Liquids" & year==`year_i';
-		local FSES_Liquids_`year_i' = `r(levels)';
-	levelsof Switch_effect_share if fuel=="Other" & year==`year_i';
-		local FSES_Other_`year_i' = `r(levels)';
-	levelsof Switch_effect_share if fuel=="Hydrogen" & year==`year_i';
-		local FSES_Hydrogen_`year_i' = `r(levels)';
+	foreach x of varlist fuel {;
+		levelsof Switch_effect_share if fuel=="`x'" & year==`year_i';
+			local FSES_`x'_`year_i' = `r(levels)';
+	};
 	
 	replace Switch_effect_share = `FSES_Electricity_`year_i'' + `FSES_Gases_`year_i'' 
 		+ `FSES_Liquids_`year_i'' + `FSES_Other_`year_i'' + `FSES_Hydrogen_`year_i''
@@ -312,7 +241,6 @@ forvalues year_i = 2010(10)2050 {;
 	};
 
 gen FuelSwitch_Effect=.;
-
 
 forvalues year_i = 2010(10)2050 {;
 	replace FuelSwitch_Effect = Switch_effect_share * `CI_Effect_Total_`year_i''
@@ -353,11 +281,9 @@ forvalues year_i = 2020(10)2050 {;
 replace FuelSwitch_effect2_share=0 if FuelSwitch_effect2_share==.;
 
 forvalues year_i = 2020(10)2050 {;
-	levelsof FuelSwitch_effect2_share if fuel=="Electricity" & year==`year_i', miss local (FSES2_Electricity_`year_i');
-	levelsof FuelSwitch_effect2_share if fuel=="Gases" & year==`year_i', miss local (FSES2_Gases_`year_i');
-	levelsof FuelSwitch_effect2_share if fuel=="Liquids" & year==`year_i', miss local (FSES2_Liquids_`year_i');
-	levelsof FuelSwitch_effect2_share if fuel=="Other" & year==`year_i', miss local (FSES2_Other_`year_i');
-	levelsof FuelSwitch_effect2_share if fuel=="Hydrogen" & year==`year_i', miss local (FSES2_Hydrogen_`year_i');
+	foreach x of varlist fuel {;
+		levelsof FuelSwitch_effect2_share if fuel=="`x'" & year==`year_i', miss local (FSES2_`x'_`year_i');
+	};
 	
 	replace FuelSwitch_effect2_share = `FSES2_Electricity_`year_i'' + `FSES2_Gases_`year_i''
 		+ `FSES2_Liquids_`year_i'' + `FSES2_Other_`year_i'' + `FSES2_Hydrogen_`year_i''
@@ -374,16 +300,16 @@ forvalues year_i = 2020(10)2050 {;
 save subset/`1'_`2'_Trans_Analysis, replace;
 
 /* Generate output table */
-keep model region fuel year scale_effect_trans EI_effect_trans CI_effect_trans EF_Reduce_Effect FuelSwitch_effect2;
-rename EF_Reduce_Effect EF_effect_trans;
-rename FuelSwitch_effect2 FS_effect_trans;
+keep model region fuel year scale_effect_Trans EI_effect_Trans CI_effect_Trans EF_Reduce_Effect FuelSwitch_effect2;
+rename EF_Reduce_Effect EF_effect_Trans;
+rename FuelSwitch_effect2 FS_effect_Trans;
 
 save Trans_outputs/`1'_`2'_Trans, replace;
-label variable scale_effect_trans "Transport sector scale effect";
-label variable EI_effect_trans "Transport sector energy intensity effect";
-label variable CI_effect_trans "Transport sector carbon intensity effect";
-label variable EF_effect_trans "Tansport sector emission rate improvement effect (under carbon effect)";
-label variable FS_effect_trans "Tansport sector fuel switching effect (under carbon effect)";
+label variable scale_effect_Trans "Transport sector scale effect";
+label variable EI_effect_Trans "Transport sector energy intensity effect";
+label variable CI_effect_Trans "Transport sector carbon intensity effect";
+label variable EF_effect_Trans "Tansport sector emission rate improvement effect (under carbon effect)";
+label variable FS_effect_Trans "Tansport sector fuel switching effect (under carbon effect)";
 
 save Trans_outputs/`1'_`2'_Trans, replace;
 clear all;
